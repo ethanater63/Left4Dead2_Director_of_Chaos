@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2026-10-20 — Director earned no points on some maps
+
+- **Ethan:** a friend playing Director wasn't gaining points.
+- **Cause:** L4D2 sometimes fires `round_start` before SourceMod's `OnMapStart`. `OnMapStart` then reset the round-live flag to off, so the income timer paid nothing for the whole map. The log showed it: claimed at 50, spent 25 on a Horde 49 s later, and 25 were left.
+- **Fix:** `OnMapStart` no longer clears the flag; it only sets it on a late load. `OnMapEnd` already clears it between maps. Verified live: +39 points in 39 s after the hot deploy.
+- **Also:** the plugin now loads `common.phrases`. Without it, `sm_director_assign` aimed at a bot or a bad target threw an exception instead of replying with the error.
+
 ## 2026-10-18 — Published to GitHub
 
 - Repo: https://github.com/ethanater63/Left4Dead2_Director_of_Chaos (GPLv3), set up like the invasion repo: `LICENSE`, `.gitattributes` (LF everywhere, `.smx` binary), a `Makefile` wrapping `build.sh`, and the compiled `.smx` committed.

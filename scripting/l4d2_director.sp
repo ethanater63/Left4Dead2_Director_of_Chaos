@@ -231,6 +231,7 @@ public void OnPluginStart()
 	g_StatLabels  = new ArrayList(ByteCountToCells(64));
 	g_StatCount   = new StringMap();
 
+	LoadTranslations("common.phrases");     // FindTarget's error replies
 	BuildPath(Path_SM, g_sLogPath, sizeof(g_sLogPath), LOG_FILE);
 
 	CreateConVar("l4d2_director_version", PLUGIN_VERSION, "L4D2 Director Mode version", FCVAR_NOTIFY | FCVAR_DONTRECORD);
@@ -277,8 +278,11 @@ public void OnMapStart()
 	g_iHalo = PrecacheModel(HALO_MATERIAL, true);
 
 	g_bMapRunning = true;
-	// After a mid-map (re)load the round is already in progress.
-	g_bRoundLive = g_bLateLoad;
+	// After a mid-map (re)load the round is already in progress. Otherwise
+	// leave the flag alone: L4D2 can fire round_start before OnMapStart, and
+	// OnMapEnd has already cleared it for the previous map.
+	if (g_bLateLoad)
+		g_bRoundLive = true;
 	g_bLateLoad = false;
 	g_bFinale = false;
 	g_fPanicUntil = 0.0;
