@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2026-10-20 — Shorter special infected cooldowns
+
+- **Ethan:** reduce the special infected cooldowns.
+- Shared lock `groups.specials.window` 60 → 40 s (still 2 specials per window).
+- Per-item cooldowns: Boomer, Smoker, Hunter and Spitter 8 → 5 s; Jockey and Charger 10 → 6 s.
+- Config only; applied live with `sm_director_reload`.
+
 ## 2026-10-20 — Map events keep their hordes on every campaign
 
 - **Ethan:** the carousel (c2m2) didn't spawn its horde. All of those events should stay intact across all campaigns.
