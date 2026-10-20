@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 2026-10-20 — Survivor death bonus
+
+- **Ethan:** when a survivor dies, give the Director 100 points.
+- **Code:** new economy key `survivor_death_bonus` (default 0, shipped 100). Every survivor death while a Director is active and the round is live adds it, capped at `cap`. Any cause counts, not only Director spawns. The Director gets a chat line, and the log gets `BONUS survivor death <name> +N points=N`.
+
 ## 2026-10-20 — Shorter special infected cooldowns
 
 - **Ethan:** reduce the special infected cooldowns.

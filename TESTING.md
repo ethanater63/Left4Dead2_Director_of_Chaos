@@ -39,6 +39,7 @@ Useful console checks: `director_no_specials`, `director_no_bosses`, `director_n
 13. **Invader refused.** With `l4d2_invasion` loaded, a human on the infected team running `sm_director` gets "Active invaders can't be the Director." Invasions are not expected to work while a Director is active; that's by design.
 14. **Map events get hordes.** With a Director active (and debug on), set off a car alarm (c1m2), the mall alarm (c1m3), the carousel (c2m2) and the coaster (c2m3). Each gets waves as in normal coop. In between, no random AI hordes come, and `Horde timer:` debug lines count down from about 99999 s.
 15. **Finale specials.** At finale start, the Director gets "Some items are still available." Specials can still be placed (normal rules, group lock and alive limit). Horde, Panic Horde, Witch and Tank rows are greyed out, and the AI runs the finale's hordes and Tanks.
+16. **Death bonus.** When a survivor dies, the Director gets "<name> died: +100 points." (less if near the cap), and the log has a `BONUS survivor death` line.
 
 Also worth checking:
 - Switching the Director to survivors via the team menu releases the role.

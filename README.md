@@ -70,6 +70,7 @@ KeyValues. Missing keys fall back to the values shown.
 | `income_per_sec` | 2 | Added every second while a round is live (`round_start`…`round_end`) |
 | `cap` | 300 | Income stops here |
 | `income_paused_in_finale` | 1 | No income after `finale_start` |
+| `survivor_death_bonus` | 0 | Points the Director gets each time any survivor dies, human or bot, while a round is live. Capped at `cap`. Shipped config: 100. |
 
 ### `placement`
 | Key | Default | Meaning |

@@ -108,6 +108,7 @@ enum struct Config
 	int incomePerSec;
 	int cap;
 	bool incomePausedInFinale;
+	int deathBonus;         // points when any survivor dies
 
 	float minSurvivorDist;
 	float maxPlaceDist;
@@ -425,6 +426,7 @@ bool LoadConfig(char[] error, int maxlen)
 	c.incomePerSec         = kv.GetNum("income_per_sec", 2);
 	c.cap                  = kv.GetNum("cap", 300);
 	c.incomePausedInFinale = kv.GetNum("income_paused_in_finale", 1) != 0;
+	c.deathBonus           = kv.GetNum("survivor_death_bonus", 0);
 	kv.Rewind();
 
 	kv.JumpToKey("placement");
@@ -1926,11 +1928,26 @@ void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 	{
 		if (AttackerIsDirectorSpawn(event))
 			g_iStatKills++;
+		AwardDeathBonus(victim);
 	}
 	else
 	{
 		UntrackEntity(victim);
 	}
+}
+
+void AwardDeathBonus(int victim)
+{
+	int client = GetDirector();
+	if (client == 0 || !g_bRoundLive || g_Cfg.deathBonus <= 0)
+		return;
+	int before = g_iPoints;
+	g_iPoints += g_Cfg.deathBonus;
+	if (g_iPoints > g_Cfg.cap)
+		g_iPoints = g_Cfg.cap;
+	PrintToChat(client, "%s %N died: +%d points.", CHAT_TAG, victim, g_iPoints - before);
+	LogDirector("BONUS survivor death %N +%d points=%d", victim, g_iPoints - before, g_iPoints);
+	ShowHint(client);
 }
 
 void Event_PlayerIncap(Event event, const char[] name, bool dontBroadcast)
