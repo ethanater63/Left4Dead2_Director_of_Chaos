@@ -795,6 +795,46 @@ void EnforceFreeCam(int client)
 		SetEntProp(client, Prop_Send, "m_iObserverMode", OBS_MODE_ROAMING);
 	if (GetEntPropEnt(client, Prop_Send, "m_hObserverTarget") != -1)
 		SetEntPropEnt(client, Prop_Send, "m_hObserverTarget", -1);
+
+	// Free roam flies only with the observer move type. Setting the observer
+	// mode by netprop (above) doesn't set it, e.g. after a map change.
+	if (GetEntityMoveType(client) != MOVETYPE_OBSERVER)
+	{
+		DebugLog("Movetype on %N was %d, set to observer", client, GetEntityMoveType(client));
+		SetEntityMoveType(client, MOVETYPE_OBSERVER);
+	}
+
+	// A map intro camera can leave a spectator looking through it, frozen,
+	// after the survivors are released.
+	int flags = GetEntityFlags(client);
+	if (flags & (FL_FROZEN | FL_ATCONTROLS))
+	{
+		SetEntityFlags(client, flags & ~(FL_FROZEN | FL_ATCONTROLS));
+		DebugLog("Cleared freeze flags on %N", client);
+	}
+	if (HasEntProp(client, Prop_Send, "m_hViewEntity"))
+	{
+		int view = GetEntPropEnt(client, Prop_Send, "m_hViewEntity");
+		if (view != -1 && view != client)
+		{
+			SetClientViewEntity(client, client);
+			DebugLog("Reset view entity on %N (was %d)", client, view);
+		}
+	}
+}
+
+void LogDirectorState()
+{
+	int client = GetDirector();
+	if (client == 0)
+	{
+		DebugLog("State: no Director in game (userid %d, awaiting reattach %d)", g_iDirectorUserId, g_bAwaitingReattach);
+		return;
+	}
+	int view = HasEntProp(client, Prop_Send, "m_hViewEntity") ? GetEntPropEnt(client, Prop_Send, "m_hViewEntity") : -2;
+	DebugLog("State: %N team=%d obs=%d target=%d view=%d flags=0x%x movetype=%d",
+		client, GetClientTeam(client), GetEntProp(client, Prop_Send, "m_iObserverMode"),
+		GetEntPropEnt(client, Prop_Send, "m_hObserverTarget"), view, GetEntityFlags(client), GetEntityMoveType(client));
 }
 
 void Reattach(int client)
@@ -2124,5 +2164,7 @@ Action Cmd_Debug(int client, int args)
 {
 	g_bDebug = !g_bDebug;
 	ReplyToCommand(client, "[DIRECTOR] Debug logging %s.", g_bDebug ? "on" : "off");
+	if (g_bDebug)
+		LogDirectorState();
 	return Plugin_Handled;
 }

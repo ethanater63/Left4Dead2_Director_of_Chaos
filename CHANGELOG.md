@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2026-10-20 — Director couldn't move after a campaign change
+
+- **Ethan:** couldn't move as the Director on c2m1 after the campaign changed from c1m4.
+- **Cause:** the Director was spectator with observer mode 6 (free roam) but move type 2 (walk). The plugin sets the observer mode by netprop, which doesn't set the move type; normally the team change to spectator does that, and here there was no team change.
+- **Fix:** the 0.1 s free-cam check now also forces `MOVETYPE_OBSERVER`, clears `FL_FROZEN`/`FL_ATCONTROLS`, and resets a leftover view entity, in case a map intro camera is the cause next time. Verified live: move type 2 → 10.
+- **Debug:** `sm_director_debug` turned on now logs the Director's team, observer mode and target, view entity, flags and move type.
+
 ## 2026-10-20 — Finale income, closer and behind placement
 
 - **Ethan:** let the Director earn points during the finale, halve the too-close range, and turn off the behind-survivors limit. "I think its more fun this way."
