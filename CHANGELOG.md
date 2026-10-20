@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 2026-10-20 — Special infected lock back to 40 s
+
+- **Ethan**, after switching to survivor: back to a 40 s cooldown.
+- `groups.specials.window` 30 → 40. Config only; applied live with `sm_director_reload`.
+
 ## 2026-10-20 — Death bonus 100 → 50
 
 - **Ethan:** "Make it 50 points, thats a little op."
