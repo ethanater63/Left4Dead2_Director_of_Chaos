@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-10-20 — Director can spawn specials during the finale
+
+- **Ethan:** sitting out the finale is boring. The Director should still be able to spawn regular special infected, but not the Horde, Panic Horde, Tank or Witch.
+- **Change:** new `finale` key `allow_types` (set to `special`). After `ai_takes_over` hands the finale to the AI, items of those types stay buyable under the normal placement rules, group lock and alive limit. Everything else stays locked, and the AI still runs the finale's hordes and Tanks.
+- **Also:** a reload in the middle of a finale now picks the finale back up (`L4D_IsMissionFinalMap` + `L4D2_GetCurrentFinaleStage() != FINALE_NONE`). Before, it switched the AI back off and killed the finale's hordes.
+
 ## 2026-10-20 — Map crescendos get normal hordes
 
 - **Ethan:** during alarm or generator sections, hordes should spawn as normal.

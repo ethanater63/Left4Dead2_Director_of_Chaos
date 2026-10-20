@@ -96,6 +96,7 @@ Only entities this plugin spawned count toward these limits.
 | Key | Default | Meaning |
 |---|---|---|
 | `ai_takes_over` | 1 | On `finale_start`: restore the AI Director and turn off Director spending. The Director sees "Finale — the AI has the wheel." Director mode resumes on the next map, or when the round restarts after a wipe. |
+| `allow_types` | special | Item types the Director can still buy after the AI takes the finale, space-separated (`mob special witch tank`). Empty = nothing. A Panic Horde counts as `mob`. Income still follows `income_paused_in_finale`. |
 
 ### `role`
 | Key | Default | Meaning |

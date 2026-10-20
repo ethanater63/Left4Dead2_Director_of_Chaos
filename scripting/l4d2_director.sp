@@ -111,6 +111,7 @@ enum struct Config
 	int limit[TYPE_COUNT];  // < 0 = no limit
 
 	bool aiTakesOver;
+	bool finaleAllow[TYPE_COUNT];   // types still buyable after the AI takes the finale
 	int afkSeconds;
 
 	bool crescendoAIMobs;
@@ -288,13 +289,27 @@ public void OnMapStart()
 	// After a mid-map (re)load the round is already in progress. Otherwise
 	// leave the flag alone: L4D2 can fire round_start before OnMapStart, and
 	// OnMapEnd has already cleared it for the previous map.
-	if (g_bLateLoad)
+	bool late = g_bLateLoad;
+	if (late)
 		g_bRoundLive = true;
 	g_bLateLoad = false;
 	g_bFinale = false;
 	g_fPanicUntil = 0.0;
 	g_fCrescendoUntil = 0.0;
 	g_bSpendingDisabled = false;
+
+	// A reload mid-finale missed finale_start; pick the finale back up.
+	if (late && L4D_IsMissionFinalMap())
+	{
+		int stage = L4D2_GetCurrentFinaleStage();
+		DebugLog("Late load on a finale map, finale stage %d", stage);
+		if (stage != FINALE_NONE)
+		{
+			g_bFinale = true;
+			g_bSpendingDisabled = g_Cfg.aiTakesOver;
+			LogDirector("FINALE in progress at load - AI keeps the wheel");
+		}
+	}
 	g_Spawned.Clear();
 	ResetStats();
 
@@ -413,6 +428,24 @@ bool LoadConfig(char[] error, int maxlen)
 
 	kv.JumpToKey("finale");
 	c.aiTakesOver = kv.GetNum("ai_takes_over", 1) != 0;
+	char allow[128], parts[TYPE_COUNT + 1][16];
+	kv.GetString("allow_types", allow, sizeof(allow), "");
+	ReplaceString(allow, sizeof(allow), ",", " ");
+	int nparts = ExplodeString(allow, " ", parts, sizeof(parts), sizeof(parts[]));
+	for (int i = 0; i < nparts; i++)
+	{
+		TrimString(parts[i]);
+		if (parts[i][0] == '\0')
+			continue;
+		int t = ParseType(parts[i]);
+		if (t == -1)
+		{
+			FormatEx(error, maxlen, "finale allow_types: unknown type \"%s\"", parts[i]);
+			delete kv;
+			return false;
+		}
+		c.finaleAllow[t] = true;
+	}
 	kv.Rewind();
 
 	kv.JumpToKey("role");
@@ -586,6 +619,22 @@ bool LoadConfig(char[] error, int maxlen)
 
 	DebugLog("Config loaded: %d items", g_Items.Length);
 	return true;
+}
+
+// After the AI takes the finale, only finale allow_types stay buyable.
+bool FinaleBlocks(const Item it)
+{
+	return g_bSpendingDisabled && !g_Cfg.finaleAllow[it.type];
+}
+
+bool AnyFinaleAllowed()
+{
+	for (int i = 0; i < TYPE_COUNT; i++)
+	{
+		if (g_Cfg.finaleAllow[i])
+			return true;
+	}
+	return false;
 }
 
 int ParseType(const char[] name)
@@ -885,7 +934,7 @@ void ShowHint(int client)
 	}
 
 	char extra[96];
-	if (g_bSpendingDisabled)
+	if (g_bSpendingDisabled && !AnyFinaleAllowed())
 		strcopy(extra, sizeof(extra), "\nFinale — the AI has the wheel.");
 	else if (g_iArmed != -1 && !g_bPointValid && g_sReason[0] != '\0')
 		FormatEx(extra, sizeof(extra), "\nBlocked: %s", g_sReason);
@@ -953,7 +1002,7 @@ void RecordGroupBuy(const Item it)
 
 bool CanBuy(const Item it)
 {
-	return !g_bSpendingDisabled && g_iPoints >= it.cost && WaitLeft(it) <= 0.0;
+	return !FinaleBlocks(it) && g_iPoints >= it.cost && WaitLeft(it) <= 0.0;
 }
 
 // Fills one menu row. Returns the draw style.
@@ -1224,7 +1273,7 @@ bool EvaluatePlacement(int client, const Item it, float out[3], char[] reason, i
 	if (L4D2Direct_GetTerrorNavArea(probe) != area)
 		L4D_GetNavAreaCenter(area, out);
 
-	if (g_bSpendingDisabled)
+	if (FinaleBlocks(it))
 	{
 		strcopy(reason, maxlen, "Finale — the AI has the wheel");
 		return false;
@@ -1724,7 +1773,10 @@ void Event_FinaleStart(Event event, const char[] name, bool dontBroadcast)
 	if (client > 0)
 	{
 		Disarm(false);
-		PrintToChat(client, "%s Finale — the AI has the wheel.", CHAT_TAG);
+		if (AnyFinaleAllowed())
+			PrintToChat(client, "%s Finale — the AI has the wheel. Some items are still available.", CHAT_TAG);
+		else
+			PrintToChat(client, "%s Finale — the AI has the wheel.", CHAT_TAG);
 		ShowHint(client);
 		if (g_hOpenMenu != null)
 			OpenItemMenu(client);
