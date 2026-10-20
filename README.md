@@ -104,10 +104,14 @@ Only entities this plugin spawned count toward these limits.
 | `afk_seconds` | 90 | Release the role after this many seconds with no button or mouse input. The same window is the grace period for the Director to reconnect after a map change. 0 = never. |
 
 ### `crescendo`
+How the AI's hordes are held back while a human Director is active, without breaking map events.
+
 | Key | Default | Meaning |
 |---|---|---|
-| `ai_mobs` | 1 | When the map starts a panic event (car alarm, mall alarm, generator, gauntlet), the AI's hordes are allowed for it, as in normal coop. Specials and bosses stay off. 0 = those events get no hordes while a Director is active. |
-| `max_seconds` | 300 | The hordes stop at `panic_event_finished`, or after this many seconds if the map never sends it. |
+| `block_natural_by_timer` | 1 | **1:** `director_no_mobs` is left alone. Only the random horde timer is pushed out: the eight `z_mob_spawn_{min,max}_interval_{easy,normal,hard,expert}` cvars are set to `natural_horde_interval`, then `L4D_ResetMobTimer`. Car alarms, panic buttons, `ScriptedPanicEvent` minifinales and `BeginScript` onslaughts (the c2m2 carousel, the c2m3 coaster, the c1m3 mall) keep their hordes on every campaign, because they don't use that timer. **0:** the old behaviour. `director_no_mobs 1` blocks every AI horde, with the `ai_mobs` exception. |
+| `natural_horde_interval` | 99999 | Seconds the random horde timer is set to while a Director is active. On release, the saved values come back and the timer is reset. |
+| `ai_mobs` | 1 | Mode 0 only: a `create_panic_event` from the map lifts `director_no_mobs` until `panic_event_finished`. Onslaught scripts don't fire that event. |
+| `max_seconds` | 300 | Mode 0 only: backstop for `ai_mobs`. |
 
 ### `groups` (optional)
 
@@ -204,7 +208,7 @@ All three cvars are set to 1 while a Director is active. They're re-checked ever
 - **Witch posture.** `L4D2_SpawnWitch` lets the game decide. Witches sit on night maps but wander on daytime maps, and there's no clean property to force a seated Witch.
 - **`director_no_specials` vs our own SI spawns.** `L4D2_SpawnSpecial` calls `ZombieManager::SpawnSpecial` directly and should ignore the cvar. If specials fail to spawn in testing, the Director gets "Spawn failed — no points spent." and the log has a `SPAWN FAILED` line.
 - **Scripted bosses are blocked too.** While the AI is off, non-finale map-scripted Tanks and Witches are stopped (`director_no_bosses` plus the forwards). With `ai_takes_over 0`, finale Tanks are blocked as well, which may stall some finales.
-- **Crescendo detection** uses `create_panic_event` / `panic_event_finished`. A map event that doesn't fire `create_panic_event` still gets no hordes. If the Director's own Panic Horde finishes during a map crescendo, the game's single finish event may end the crescendo's hordes early.
+- **Timer mode assumes** map onslaught scripts restart the horde timer with their own timing (`Director.ResetMobTimer()`). The official scripts are encrypted, so this was checked live on the c2m3 coaster. If an onslaught stays empty, set `block_natural_by_timer 0` to get the old behaviour back.
 - **Wandering commons** still spawn. `director_no_mobs` only stops hordes.
 - **Visibility** means line of sight from any living survivor's eye, regardless of which way they face. That's stricter than real field of view.
 - **Swamp Fever and similar events.** Some crescendos are flagged as finales by Valve. `finale_start` may fire there, which hands control to the AI for the rest of that round.

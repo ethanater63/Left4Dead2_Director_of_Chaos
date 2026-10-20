@@ -72,6 +72,16 @@ enum
 
 static const char g_sAICvarNames[AICV_COUNT][] = { "director_no_specials", "director_no_bosses", "director_no_mobs" };
 
+// The natural (random) horde timer. Map events don't use it: panic events
+// spawn their own waves and onslaught scripts set their own mob timing.
+#define HORDE_CV_COUNT 8
+static const char g_sHordeCvarNames[HORDE_CV_COUNT][] = {
+	"z_mob_spawn_min_interval_easy", "z_mob_spawn_min_interval_normal",
+	"z_mob_spawn_min_interval_hard", "z_mob_spawn_min_interval_expert",
+	"z_mob_spawn_max_interval_easy", "z_mob_spawn_max_interval_normal",
+	"z_mob_spawn_max_interval_hard", "z_mob_spawn_max_interval_expert"
+};
+
 enum struct Item
 {
 	char key[32];
@@ -114,6 +124,8 @@ enum struct Config
 	bool finaleAllow[TYPE_COUNT];   // types still buyable after the AI takes the finale
 	int afkSeconds;
 
+	bool hordeByTimer;              // block only the natural horde timer, not director_no_mobs
+	char naturalInterval[16];
 	bool crescendoAIMobs;
 	float crescendoMax;
 }
@@ -139,6 +151,8 @@ int g_iPoints;
 
 ConVar g_cvAI[AICV_COUNT];
 char g_sSavedAI[AICV_COUNT][32];
+ConVar g_cvHorde[HORDE_CV_COUNT];
+char g_sSavedHorde[HORDE_CV_COUNT][16];
 bool g_bAIOff;
 bool g_bMapRunning;
 
@@ -223,6 +237,12 @@ public void OnPluginStart()
 		g_cvAI[i] = FindConVar(g_sAICvarNames[i]);
 		if (g_cvAI[i] == null)
 			SetFailState("Could not find cvar \"%s\".", g_sAICvarNames[i]);
+	}
+	for (int i = 0; i < HORDE_CV_COUNT; i++)
+	{
+		g_cvHorde[i] = FindConVar(g_sHordeCvarNames[i]);
+		if (g_cvHorde[i] == null)
+			SetFailState("Could not find cvar \"%s\".", g_sHordeCvarNames[i]);
 	}
 	g_cvMegaMobSize = FindConVar("z_mega_mob_size");
 	g_cvCommonLimit = FindConVar("z_common_limit");
@@ -453,6 +473,8 @@ bool LoadConfig(char[] error, int maxlen)
 	kv.Rewind();
 
 	kv.JumpToKey("crescendo");
+	c.hordeByTimer    = kv.GetNum("block_natural_by_timer", 1) != 0;
+	kv.GetString("natural_horde_interval", c.naturalInterval, sizeof(c.naturalInterval), "99999");
 	c.crescendoAIMobs = kv.GetNum("ai_mobs", 1) != 0;
 	c.crescendoMax    = kv.GetFloat("max_seconds", 300.0);
 	kv.Rewind();
@@ -871,10 +893,13 @@ void ApplyAIState()
 		return;
 	}
 
-	if (!g_bAIOff)
+	bool turningOff = !g_bAIOff;
+	if (turningOff)
 	{
 		for (int i = 0; i < AICV_COUNT; i++)
 			g_cvAI[i].GetString(g_sSavedAI[i], sizeof(g_sSavedAI[]));
+		for (int i = 0; i < HORDE_CV_COUNT; i++)
+			g_cvHorde[i].GetString(g_sSavedHorde[i], sizeof(g_sSavedHorde[]));
 		g_bAIOff = true;
 		DebugLog("AI off (saved %s=%s %s=%s %s=%s)",
 			g_sAICvarNames[0], g_sSavedAI[0], g_sAICvarNames[1], g_sSavedAI[1], g_sAICvarNames[2], g_sSavedAI[2]);
@@ -884,11 +909,20 @@ void ApplyAIState()
 	// returns early on it, so it has no separate limit to zero.
 	for (int i = 0; i < AICV_COUNT; i++)
 	{
-		if (i == AICV_MOBS && (GetEngineTime() < g_fPanicUntil || GetEngineTime() < g_fCrescendoUntil))
+		if (i == AICV_MOBS && g_Cfg.hordeByTimer)
+			SetCvarIfDifferent(g_cvAI[i], g_sSavedAI[i]);
+		else if (i == AICV_MOBS && (GetEngineTime() < g_fPanicUntil || GetEngineTime() < g_fCrescendoUntil))
 			SetCvarIfDifferent(g_cvAI[i], "0");
 		else
 			SetCvarIfDifferent(g_cvAI[i], "1");
 	}
+
+	// Timer mode: only the random horde is pushed out of reach. Alarms,
+	// panic buttons and onslaught scripts keep their hordes.
+	for (int i = 0; i < HORDE_CV_COUNT; i++)
+		SetCvarIfDifferent(g_cvHorde[i], g_Cfg.hordeByTimer ? g_Cfg.naturalInterval : g_sSavedHorde[i]);
+	if (turningOff && g_Cfg.hordeByTimer && g_bMapRunning)
+		L4D_ResetMobTimer();
 }
 
 void RestoreAI()
@@ -901,6 +935,14 @@ void RestoreAI()
 		if (g_cvAI[i] != null)
 			SetCvarIfDifferent(g_cvAI[i], g_sSavedAI[i]);
 	}
+	for (int i = 0; i < HORDE_CV_COUNT; i++)
+	{
+		if (g_cvHorde[i] != null)
+			SetCvarIfDifferent(g_cvHorde[i], g_sSavedHorde[i]);
+	}
+	// Start a normal-length countdown again instead of the pushed-out one.
+	if (g_bMapRunning)
+		L4D_ResetMobTimer();
 	g_bAIOff = false;
 	DebugLog("AI restored");
 }
@@ -950,6 +992,13 @@ Action Timer_Second(Handle timer)
 	}
 
 	ApplyAIState();
+
+	if (g_bDebug && RoundToFloor(now) % 5 == 0)
+	{
+		CountdownTimer mt = L4D2Direct_GetMobSpawnTimer();
+		if (mt != CTimer_Null)
+			DebugLog("Horde timer: %.0fs left of %.0fs", CTimer_GetRemainingTime(mt), CTimer_GetCountdownDuration(mt));
+	}
 
 	if (g_bRoundLive && !(g_bFinale && g_Cfg.incomePausedInFinale) && g_iPoints < g_Cfg.cap)
 	{

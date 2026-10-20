@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2026-10-20 — Map events keep their hordes on every campaign
+
+- **Ethan:** the carousel (c2m2) didn't spawn its horde. All of those events should stay intact across all campaigns.
+- **Cause:** the carousel is an onslaught script (`@director,BeginScript,C2_fairgrounds_onslaught`), not a panic event, so the `create_panic_event` exception never fired. A scan of every official map's `info_director` inputs found 81 `BeginScript`, 39 `PanicEvent`, 11 `ForcePanicEvent` and 2 `ScriptedPanicEvent`. Many `BeginScript` calls aren't hordes at all (`no_bosses`, `reserved_wanderers`, `quiet`, whole-map scripts), so matching on inputs or script names can't be made reliable.
+- **Change:** `director_no_mobs` is no longer touched. While a Director is active, only the random horde timer is pushed out: the `z_mob_spawn_{min,max}_interval_*` cvars go to 99999, then `L4D_ResetMobTimer`. They are saved, restored and the timer reset on release. Map events don't use that timer, so they run as designed. The old `director_no_mobs` mode stays available with `block_natural_by_timer 0`.
+- **Debug:** with debug on, the horde timer's remaining time is logged every 5 s.
+
 ## 2026-10-20 — Director couldn't move after a campaign change
 
 - **Ethan:** couldn't move as the Director on c2m1 after the campaign changed from c1m4.
