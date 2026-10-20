@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 2026-10-20 — Death bonus 100 → 50
+
+- **Ethan:** "Make it 50 points, thats a little op."
+- `survivor_death_bonus` 100 → 50. Config only; applied live with `sm_director_reload`.
+
 ## 2026-10-20 — Survivor death bonus
 
 - **Ethan:** when a survivor dies, give the Director 100 points.
