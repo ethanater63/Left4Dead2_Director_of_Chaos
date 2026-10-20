@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 2026-10-20 — Finale income, closer and behind placement
+
+- **Ethan:** let the Director earn points during the finale, halve the too-close range, and turn off the behind-survivors limit. "I think its more fun this way."
+- `income_paused_in_finale` 1 → 0.
+- `min_survivor_distance` 600 → 300.
+- `flow_behind_allowed` 200 → 99999, larger than any map's flow, so "Behind survivors" never triggers. "Too far ahead" (`flow_ahead_max` 3000) is unchanged.
+- Config only; applied live with `sm_director_reload`.
+
 ## 2026-10-20 — Director can spawn specials during the finale
 
 - **Ethan:** sitting out the finale is boring. The Director should still be able to spawn regular special infected, but not the Horde, Panic Horde, Tank or Witch.
