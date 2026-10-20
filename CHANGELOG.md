@@ -3,7 +3,7 @@
 ## 2026-10-20 — Shorter special infected cooldowns
 
 - **Ethan:** reduce the special infected cooldowns.
-- Shared lock `groups.specials.window` 60 → 40 s (still 2 specials per window).
+- Shared lock `groups.specials.window` 60 → 40 s (still 2 specials per window). Ethan then asked for 30 s, so 30 is the value now.
 - Per-item cooldowns: Boomer, Smoker, Hunter and Spitter 8 → 5 s; Jockey and Charger 10 → 6 s.
 - Config only; applied live with `sm_director_reload`.
 
