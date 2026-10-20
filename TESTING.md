@@ -37,6 +37,7 @@ Useful console checks: `director_no_specials`, `director_no_bosses`, `director_n
 11. **Disconnect.** When the Director disconnects mid-map, the three cvars are restored within 1 second, and chat says the role is free.
 12. **Summary.** At round end or map transition, everyone sees `[DIRECTOR] <name> spent N pts: … | Incaps caused: n | Kills: n`, and the same line appears in `l4d2_director.log` as `SUMMARY map=…`.
 13. **Invader refused.** With `l4d2_invasion` loaded, a human on the infected team running `sm_director` gets "Active invaders can't be the Director." Invasions are not expected to work while a Director is active; that's by design.
+14. **Crescendos get hordes.** With a Director active, trigger a car alarm (c1m2) or the mall alarm (c1m3). AI hordes come in waves as in normal coop, `l4d2_director.log` shows `CRESCENDO started`, then `CRESCENDO finished` once the event ends, and normal hordes stop again.
 
 Also worth checking:
 - Switching the Director to survivors via the team menu releases the role.

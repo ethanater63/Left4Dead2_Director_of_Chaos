@@ -112,6 +112,9 @@ enum struct Config
 
 	bool aiTakesOver;
 	int afkSeconds;
+
+	bool crescendoAIMobs;
+	float crescendoMax;
 }
 
 enum struct Spawned
@@ -164,6 +167,8 @@ char g_sSavedMegaMob[16];
 char g_sSavedCommonLimit[16];
 bool g_bPanicSizeSet;
 float g_fPanicUntil;         // GetEngineTime() until which director_no_mobs is lifted for a panic
+float g_fCrescendoUntil;     // same, for a panic the map started (alarm, generator, gauntlet)
+float g_fOwnPanicAt;         // when this plugin last called L4D_ForcePanicEvent
 float g_fLastClickAt;        // debounces a click arriving as both a button and a spec_* command
 
 Menu g_hOpenMenu;
@@ -259,6 +264,8 @@ public void OnPluginStart()
 	HookEvent("player_death",         Event_PlayerDeath);
 	HookEvent("player_incapacitated", Event_PlayerIncap);
 	HookEvent("witch_killed",         Event_WitchKilled);
+	HookEvent("create_panic_event",   Event_PanicStart,   EventHookMode_PostNoCopy);
+	HookEvent("panic_event_finished", Event_PanicFinished, EventHookMode_PostNoCopy);
 
 	char error[256];
 	if (!LoadConfig(error, sizeof(error)))
@@ -286,6 +293,7 @@ public void OnMapStart()
 	g_bLateLoad = false;
 	g_bFinale = false;
 	g_fPanicUntil = 0.0;
+	g_fCrescendoUntil = 0.0;
 	g_bSpendingDisabled = false;
 	g_Spawned.Clear();
 	ResetStats();
@@ -409,6 +417,11 @@ bool LoadConfig(char[] error, int maxlen)
 
 	kv.JumpToKey("role");
 	c.afkSeconds = kv.GetNum("afk_seconds", 90);
+	kv.Rewind();
+
+	kv.JumpToKey("crescendo");
+	c.crescendoAIMobs = kv.GetNum("ai_mobs", 1) != 0;
+	c.crescendoMax    = kv.GetFloat("max_seconds", 300.0);
 	kv.Rewind();
 
 	if (c.cap < 0 || c.startPoints < 0 || c.incomePerSec < 0 || c.maxPlaceDist <= 0.0)
@@ -782,7 +795,7 @@ void ApplyAIState()
 	// returns early on it, so it has no separate limit to zero.
 	for (int i = 0; i < AICV_COUNT; i++)
 	{
-		if (i == AICV_MOBS && GetEngineTime() < g_fPanicUntil)
+		if (i == AICV_MOBS && (GetEngineTime() < g_fPanicUntil || GetEngineTime() < g_fCrescendoUntil))
 			SetCvarIfDifferent(g_cvAI[i], "0");
 		else
 			SetCvarIfDifferent(g_cvAI[i], "1");
@@ -1442,6 +1455,7 @@ bool SpawnItem(const Item it, const float pos[3])
 			g_bSelfSpawn = false;
 			if (it.panic)
 			{
+				g_fOwnPanicAt = GetEngineTime();
 				L4D_ForcePanicEvent();
 				return true;
 			}
@@ -1635,6 +1649,7 @@ int CountAlive(int type)
 void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 {
 	g_bRoundLive = true;
+	g_fCrescendoUntil = 0.0;
 	g_bFinale = false;
 	g_bSummaryPrinted = false;
 	g_Spawned.Clear();
@@ -1647,8 +1662,44 @@ void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 	}
 }
 
+// A panic the map started (car alarm, generator, gauntlet) lets the AI's
+// hordes back on until the game says it is over, or crescendo max_seconds
+// as a backstop for scripts that never finish. The Director's own Panic
+// Horde fires the same event and is skipped.
+void Event_PanicStart(Event event, const char[] name, bool dontBroadcast)
+{
+	float now = GetEngineTime();
+	if (!g_Cfg.crescendoAIMobs || now - g_fOwnPanicAt < 1.0 || g_iDirectorUserId == 0)
+		return;
+	g_fCrescendoUntil = now + g_Cfg.crescendoMax;
+	ApplyAIState();
+	CreateTimer(g_Cfg.crescendoMax, Timer_CrescendoEnd, _, TIMER_FLAG_NO_MAPCHANGE);
+	LogDirector("CRESCENDO started - AI hordes on");
+}
+
+void Event_PanicFinished(Event event, const char[] name, bool dontBroadcast)
+{
+	if (g_fCrescendoUntil <= 0.0)
+		return;
+	g_fCrescendoUntil = 0.0;
+	ApplyAIState();
+	LogDirector("CRESCENDO finished - AI hordes off");
+}
+
+Action Timer_CrescendoEnd(Handle timer)
+{
+	if (g_fCrescendoUntil > 0.0 && GetEngineTime() >= g_fCrescendoUntil)
+	{
+		g_fCrescendoUntil = 0.0;
+		ApplyAIState();
+		LogDirector("CRESCENDO timed out - AI hordes off");
+	}
+	return Plugin_Stop;
+}
+
 void Event_RoundEnd(Event event, const char[] name, bool dontBroadcast)
 {
+	g_fCrescendoUntil = 0.0;
 	g_bRoundLive = false;
 	Disarm(false);
 	PrintSummary();
@@ -1786,6 +1837,7 @@ void StartPanic(int client, const Item it)
 	g_fPanicUntil = now + it.duration;
 	ApplyAIState();
 	SetPanicSize(it);
+	g_fOwnPanicAt = now;
 	L4D_ForcePanicEvent();
 	CreateTimer(it.duration, Timer_PanicEnd, _, TIMER_FLAG_NO_MAPCHANGE);
 

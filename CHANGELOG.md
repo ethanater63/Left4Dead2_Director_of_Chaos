@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-10-20 — Map crescendos get normal hordes
+
+- **Ethan:** during alarm or generator sections, hordes should spawn as normal.
+- **Cause:** `director_no_mobs 1` (AI off while a Director is active) also blocked the panic waves that map events start.
+- **Change:** on `create_panic_event` from the map, the AI's mobs are allowed until `panic_event_finished`, or `max_seconds` as a backstop. The Director's own Panic Horde is skipped. Specials and bosses stay off. New config section `crescendo` (`ai_mobs` 1, `max_seconds` 300). Log lines: `CRESCENDO started / finished / timed out`.
+
 ## 2026-10-20 — Director earned no points on some maps
 
 - **Ethan:** a friend playing Director wasn't gaining points.
