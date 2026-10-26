@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 2026-10-26 — Fewer Witches
+
+- **Ethan:** why do so many Witches spawn? Do both fixes.
+- **Cause 1:** the Director's Witch was cheap (60 pts, 60 s cooldown, 2 alive) and is the only item allowed in view. Nash placed 7 in 23 minutes on 10/20.
+  - **Config:** Witch `cost` 60 → 100, `cooldown` 60 → 120, `max_alive_witches` 2 → 1. Applied live with `sm_director_reload`.
+- **Cause 2:** l4dinfectedbots spawns its own Witches (up to 4, every 90–120 s) whenever no Director holds the role, on top of the game's normal Witches.
+  - **Server only (CT 107):** `witch_max_limit` → 0 and `witch_spawn_time_min/max` → 99999 in `data/l4dinfectedbots/{coop,coop_finale,realism,survival}.cfg`, then `sm plugins reload l4dinfectedbots`. Backups: `*.cfg.bak-witch`. Both are set because the plugin source isn't available to confirm that limit 0 means off. The game's own Witches are unchanged.
+
 ## 2026-10-26 — Human infected (coop versus) off on the Director server
 
 - **Ethan:** turn off joining the infected team on the Director server.
