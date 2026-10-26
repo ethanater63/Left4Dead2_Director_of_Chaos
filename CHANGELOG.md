@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-10-26 — Human infected (coop versus) off on the Director server
+
+- **Ethan:** turn off joining the infected team on the Director server.
+- **Why it was on:** CT 107 was cloned from the invasion server, and l4dinfectedbots' `coop_versus_enable` was 1 in its data configs. Up to 2 humans could join infected (`!ji`) and play ghost specials, which isn't part of Director mode.
+- **Change (server only, not in this repo):** `coop_versus_enable` "1" → "0" in `data/l4dinfectedbots/{coop,coop_finale,realism,survival}.cfg` on CT 107, then `sm plugins reload l4dinfectedbots`. Backups: `*.cfg.bak-coopversus`. The invasion server (CT 103) is untouched.
+
 ## 2026-10-20 — Special infected lock back to 40 s
 
 - **Ethan**, after switching to survivor: back to a 40 s cooldown.
